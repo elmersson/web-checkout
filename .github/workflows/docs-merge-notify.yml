@@ -1,0 +1,41 @@
+name: Notify Docs on PR Merge/Close
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  # When PR is merged, trigger docs auto-merge
+  notify-merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_REPO_TOKEN }}
+          repository: elmersson/company-docs
+          event-type: source-pr-merged
+          client-payload: |
+            {
+              "service": "web-checkout",
+              "prNumber": ${{ github.event.pull_request.number }},
+              "sourceRepo": "${{ github.repository }}",
+              "sourcePrUrl": "${{ github.event.pull_request.html_url }}",
+              "mergedBy": "${{ github.event.pull_request.merged_by.login }}",
+              "mergedAt": "${{ github.event.pull_request.merged_at }}"
+            }
+
+  # When PR is closed without merging, clean up docs PR
+  notify-closed:
+    if: github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_REPO_TOKEN }}
+          repository: elmersson/company-docs
+          event-type: source-pr-closed
+          client-payload: |
+            {
+              "service": "web-checkout",
+              "prNumber": ${{ github.event.pull_request.number }}
+            }
